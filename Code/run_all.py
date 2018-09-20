@@ -39,7 +39,7 @@ if __name__ == "__main__":
     s = time.time()
     for i in files:
         print(i)
-        master.run(str(i), 'True')
+        master.run(str(i), output_dir, 'True')
         #subprocess.call(['python3', 'master.py', str(i), sys.argv[2]])
         #sys.exit()
     print("Time taken: ", (time.time() - s)/3600.0, " hours")

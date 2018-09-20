@@ -1,0 +1,18 @@
+# -*- coding: utf-8 -*-
+#
+#    James Kuszlewicz
+#    August 17th 2017
+#    Goettingen, Germany
+#
+#  This is a YAML configuration file for Clumpiness project.
+#  (Inspired by the configuration file for K2_pipes!)
+#
+
+run: PSMWP128
+
+work_dir: /home/kuszlewicz/Dropbox/Python/PSM WP128/
+ignore_warnings: False
+
+PSMWP128:
+    output_dir: '../Results/'
+    data_dir: '../Example_Data/'

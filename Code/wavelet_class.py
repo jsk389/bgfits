@@ -18,17 +18,17 @@ from matplotlib.colors import LogNorm
 
 
 class WAVELET():
-    def __init__(self, _f, _p, _kic):
+    def __init__(self, _f, _p, _kic, _output_dir):
         self.freq = _f
         self.psd = _p
         self.kic = _kic
+        self.output_dir = _output_dir
 
     def set_width(self, numax, a=0.66, b=0.88, factor=1.5):
         return a * numax**b * factor
 
     def get_snr(self, smoo=0, skips=50):
 
-        print(len(self.freq), len(self.psd))
         med = [np.median(self.psd[np.abs(self.freq - d) < self.set_width(d, factor=1)]) for d in self.freq[::skips]]
         f = interpolate.interp1d(self.freq[::skips], med, bounds_error=False)
         med = f(self.freq)
@@ -49,6 +49,7 @@ class WAVELET():
         dj = 0.05 #0.1 # 0.01
         s0 = 2*self.dt#0.007e-6#dt
         # Adaptive such that y-axis reaches 200 no matter the frequency resolution
+        # Ideally this should depend on the cadence of obs but hasn't been implemented yet
         J = np.log2(200e-6 / (4*self.dt))/dj #-1 #9.5/ dj
 
         #if self.mother == 'Morlet':
@@ -173,7 +174,7 @@ class WAVELET():
         plt.ylim(0, 200)
         plt.xlabel(r'$\nu_{\mathrm{max}}$ ($\mu$Hz)', fontsize=18)
         plt.ylabel(r'$\Delta\nu$ ($\mu$Hz)', fontsize=18)
-        plt.savefig(str(self.kic) + '_WAVELET.png')
+        plt.savefig(str(self.output_dir)+str(self.kic) + '_WAVELET.png')
         plt.close()
 
         return numax, numax_err, dnu, dnu_err

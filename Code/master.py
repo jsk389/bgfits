@@ -5,13 +5,13 @@ import warnings
 warnings.filterwarnings("ignore")
 
 import sys
-sys.path.append('../Utilities/')
+sys.path.append('Utilities/')
 import ImportData as RGGdata
 #import RGGplots
 import RGGnumax
 from os.path import expanduser
 
-def run(psd_file, freeze_exp):
+def run(psd_file, output_dir, freeze_exp):
     print("File: ", psd_file)
     # Extract kic number from file name
     kic = psd_file.split('/')[-1]
@@ -20,8 +20,9 @@ def run(psd_file, freeze_exp):
     f, p, bw = RGGdata.get_psd(psd_file)
 
     smoo = int(1.0/bw)
-    RGGnumax.run(f, p, kic, freeze_exp, plot=True, show=False, smoo=smoo, \
-                          MLE=False)
+    RGGnumax.run(f, p, kic, freeze_exp, output_dir, 
+                 plot=True, show=False, smoo=smoo,
+                 MLE=False)
 
 if __name__ == "__main__":
-    run(sys.argv[1], sys.argv[2])
+    run(sys.argv[1], sys.argv[2], sys.argv[3])

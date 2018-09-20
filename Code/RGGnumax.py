@@ -14,10 +14,8 @@ import matplotlib.mlab as mlab
 import numpy as np
 import os
 import emcee
-#import emcee
 from emcee import autocorr
 import corner
-#import weakref
 import scipy.optimize as opt
 import RGGnumax_mcmc as RGM
 import fast_fit_class as ffc
@@ -84,7 +82,7 @@ def hpd(data, level) :
 
     return (median, *diffs)
 
-def plot_back(f, p, model=[], samples=[], func=[], \
+def plot_back(f, p, output_dir, model=[], samples=[], func=[], \
               kic=[], params=[], save=[], lnln=False, \
               ff=[], pp=[], posterior=[]):
     fig = plt.figure()
@@ -153,12 +151,11 @@ def plot_back(f, p, model=[], samples=[], func=[], \
                   {'fontsize' : 18})
     plt.tight_layout()
     if len(save) > 0:
-        plt.savefig(save + "_" + kic + '.png')
-#        plt.savefig(save + '.eps')
+        plt.savefig(str(output_dir)+save + "_" + kic + '.png')
     plt.close()
 
 
-def plot_numax(samples, median, sigma, kic=[]):
+def plot_numax(samples, median, sigma, output_dir, kic=[]):
     fig = plt.figure()
     ax1 = fig.add_subplot(111)
     n, bins, patches = ax1.hist(samples, np.sqrt(len(samples))/10, \
@@ -170,14 +167,13 @@ def plot_numax(samples, median, sigma, kic=[]):
     ax1.set_ylabel('Probability')
     ax1.grid(True)
     if len(kic) > 0:
-        plt.savefig('numax_' + kic + '.png')
+        plt.savefig(str(output_dir)+'numax_' + kic + '.png')
 
 def rebin(f, smoo):
     if smoo < 1.5:
         return f
     smoo = int(smoo)
     m = len(f) // smoo
-#    print("m : ", m, len(f), smoo)
     ff = f[:m*smoo].reshape((m,smoo)).mean(1)
     return ff
 
@@ -188,7 +184,7 @@ def compute_effective_sample_size(samples):
     neff = len(samples)/tau
     return tau, neff
 
-def MCMC(freq, power, kic, ff, pp, params, like, prior, plot=False):
+def MCMC(freq, power, kic, ff, pp, params, like, prior, output_dir, plot=False):
     """
     Run MCMC
 
@@ -206,13 +202,11 @@ def MCMC(freq, power, kic, ff, pp, params, like, prior, plot=False):
 
     # Initialise MCMC parameters
     ntemps, nwalkers, niter, ndims = 6, 400, 1000, int(len(params))
-    #ntemps, nwalkers, niter, ndims = 6, 40, 10, int(len(params))
-    #ntemps, nwalkers, niter, ndims = 2, 200, 200, int(len(params))
 
     # Initiliase Dummy likelihood class
     dummy = RGM.Dummy()
     # Initialise fit class
-    fit = RGM.MCMC(freq, power, kic, ff, pp, prior, like, dummy, ntemps, nwalkers, niter, ndims)
+    fit = RGM.MCMC(freq, power, kic, ff, pp, prior, like, dummy, ntemps, nwalkers, niter, ndims, output_dir)
     # Run fit
     fit.run()
 
@@ -248,11 +242,11 @@ def MCMC(freq, power, kic, ff, pp, params, like, prior, plot=False):
 
 
 def run(ff, pp, kic, freeze_exp,\
-        plot=True, show=True, smoo=1, \
+        output_dir, plot=True, show=True, smoo=1, \
         save="back",\
         MLE=False):
     # Compute the bin width
-    bw = np.median(np.diff(ff))#ff[1]-ff[0]
+    bw = np.median(np.diff(ff))
     # Compute Nyquist frequency
     nyq = ff.max()
     start_time = time.time()
@@ -266,7 +260,6 @@ def run(ff, pp, kic, freeze_exp,\
     height = (100.0 / nuwidth)**(1/0.35)
     #  Estimate white noise
     white = np.median(pp[-100:])/2.0
-    print(white)
     # If long cadence
     if nyq < 300.0:
         # Take 5uHz for K2 and 1uHz for Kepler
@@ -309,7 +302,6 @@ def run(ff, pp, kic, freeze_exp,\
         smoo = int(5.0/bw)
         f = rebin(ff[sel], smoo)
         p = rebin(pp[sel], smoo)
-        print(np.median(p[-100:]), white*4, white/20)
         mod = Model.Model(
                           hsig1 = np.log(1e6 / numax**1.6),
                           hfreq1 = 0.3*numax,
@@ -354,13 +346,6 @@ def run(ff, pp, kic, freeze_exp,\
     params = mod.get_parameter_vector()
     like = RGM.Likelihood(f, p, mod, smoo=smoo)
 
-    #plt.plot(ff, pp)
-    #print(mod.compute_sep(params))
-    #print([i for i in mod.compute_sep(params)])
-    #plt.plot(f, mod.compute_value(), 'r')
-    #plt.show()
-
-
     # Changed exponent priors from (2,6) to (1,10) and (0,6) to (0,10) to see what happens 10/1/17 - changed back 19/1/17
     # Added in ability to check between short cadence and long-cadence and change priors accordingly
     # Divide power by smoothed version to approximate background to estimate numax
@@ -372,7 +357,7 @@ def run(ff, pp, kic, freeze_exp,\
     prior = RGM.Prior(gaussian, mod)
 
     samples, results, extra_params, f, p = MCMC(f, p, kic, ff, pp, params, \
-                                  like, prior, plot=plot)
+                                  like, prior, output_dir, plot=plot)
 
     print("... computing autocorrelation times and effective sample size ...")
     tau, neff = compute_effective_sample_size(samples)
@@ -382,29 +367,25 @@ def run(ff, pp, kic, freeze_exp,\
 
     # Compute all statistics using effective sample size
     samples = samples[::int(np.ceil(tau)),:]
-    print(param_names)
-    print(list(param_names))
     param_names = list(param_names)
     param_names = param_names + ["a1", "a2", "a3"]
     param_names = tuple(param_names)
-    #print(param_names)
-    #print(np.shape(param_names), np.shape(results))
     results = np.c_[param_names, results]
 
     fig = corner.corner(samples, labels=param_names)
-    fig.savefig(str(kic)+'_corner.png')
+    fig.savefig(str(output_dir)+str(kic)+'_corner.png')
     plt.close()
 
     # Compute correlation matrix
     correlation = correlation_matrix(samples)
     plot_covariance(correlation, param_names)
-    plt.savefig(str(kic)+'_corr_matrix.png')
+    plt.savefig(str(output_dir)+str(kic)+'_corr_matrix.png')
     plt.close()
 
 
     # Output JSON with important information!
     end_time = time.time()
-    with open(str(kic)+"_diag.json", "w") as output_file:
+    with open(str(output_dir)+str(kic)+"_diag.json", "w") as output_file:
         json.dump(dict(
                        ntemps=extra_params['ntemps'],
                        nwalkers=extra_params['nwalkers'],
@@ -431,11 +412,11 @@ def run(ff, pp, kic, freeze_exp,\
     print(np.shape(results))
     # Add header to results file
     results = np.vstack([["ParameterName", "Median", "UpperErr", "LowerErr"], results])
-    np.savetxt(fnumax_file, results, fmt="%s")
+    np.savetxt(str(output_dir)+fnumax_file, results, fmt="%s")
 
     if plot:
         ind_numax = param_names.index("numax")
-        plot_back(f,p, samples=samples[:,:-3], func=mod, \
+        plot_back(f,p, output_dir, samples=samples[:,:-3], func=mod, \
                   kic=kic, params=results,
                   save=save, ff=ff, pp=pp, posterior=samples[:,ind_numax])
         #figg = corner.corner(samples, labels=param_names)

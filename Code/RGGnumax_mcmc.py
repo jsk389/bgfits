@@ -158,7 +158,7 @@ class MCMC(object):
     """
     MCMC class object
     """
-    def __init__(self, _freq, _power, _kic, _rfreq, _rpower, _prior, _like, _dummy, _ntemps, _nwalkers, _niter, _ndims):
+    def __init__(self, _freq, _power, _kic, _rfreq, _rpower, _prior, _like, _dummy, _ntemps, _nwalkers, _niter, _ndims, _output_dir):
         print("Initialising Class")
         # Initialise class object
         self.freq = _freq
@@ -174,6 +174,7 @@ class MCMC(object):
         self.like = _like
         self.dummy = _dummy
         self.names = self.like.model.get_parameter_names()
+        self.output_dir = _output_dir
         #self.width = 30
 
     def run_dummy(self):
@@ -184,7 +185,7 @@ class MCMC(object):
 
         # Wavelet test
         print("... running wavelets ...")
-        wav = WAVELET(self.rfreq, self.rpower, self.kic)
+        wav = WAVELET(self.rfreq, self.rpower, self.kic, self.output_dir)
         first_guesses = wav()
         #plt.show()
 
